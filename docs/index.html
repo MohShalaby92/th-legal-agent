@@ -57,22 +57,24 @@
 </section>
 
 <section>
-  <h2>التثبيت (مرة واحدة) — Windows</h2>
+  <h2>التثبيت — 3 خطوات فقط</h2>
+  <p style="text-align:center;margin:18px 0">
+    <a href="TH-Legal-Setup.cmd" download style="display:inline-block;background:var(--accent);color:#111;font-weight:700;font-size:20px;padding:14px 34px;border-radius:10px;text-decoration:none">⬇ تنزيل المثبّت</a>
+  </p>
   <ol>
-    <li>ثبّت <b>Hermes Desktop</b> من <a href="https://hermes-agent.nousresearch.com" style="color:var(--accent)">hermes-agent.nousresearch.com</a> (ملف <code>.appinstaller</code>).</li>
-    <li>اطلب من مسؤول الفريق إضافة حسابك على GitHub إلى مستودع الفريق الخاص.</li>
-    <li>نزّل ملف <a href="setup-th-legal.ps1" style="color:var(--accent)"><code>setup-th-legal.ps1</code></a>، ثم افتح PowerShell في مجلد التنزيل وشغّل:
-      <pre>powershell -ExecutionPolicy Bypass -File .\setup-th-legal.ps1</pre>
-      سيفتح Git نافذة لتسجيل الدخول إلى GitHub في المرة الأولى.</li>
-    <li>عند سؤالك عن المحرك، اختر محركك <b>وسجّل الدخول بحسابك أنت</b>:
-      <table>
-        <tr><th>المحرك</th><th>الاختيار في القائمة</th></tr>
-        <tr><td>Claude Opus 5.5</td><td>المزوّد Anthropic ← النموذج Claude Opus 5.5</td></tr>
-        <tr><td>ChatGPT Sol 5.6 / Sol 6</td><td>المزوّد OpenAI (تسجيل دخول ChatGPT) ← النموذج المطلوب</td></tr>
-      </table>
-    </li>
-    <li>افتح Hermes Desktop واختر الملف الشخصي <code>th-legal</code>.</li>
+    <li><b>نزّل الملف</b> من الزر أعلاه، ثم <b>انقر عليه نقرًا مزدوجًا</b>.</li>
+    <li>إن ظهرت رسالة زرقاء «Windows protected your PC»: اضغط <b>More info</b> ثم <b>Run anyway</b>.
+        (رسالة طبيعية لأي ملف داخلي غير منشور في المتجر.) ثم اضغط <b>Yes</b> في نافذة المساعد.</li>
+    <li><b>انتظر</b> حتى تظهر رسالة «تم التثبيت بنجاح» (10–20 دقيقة في المرة الأولى، دقيقة واحدة في التحديثات).
+        سيفتح التطبيق تلقائيًا.</li>
   </ol>
+  <p><b>أول مرة فقط داخل التطبيق:</b> اختر محرك الذكاء الاصطناعي وسجّل الدخول <b>بحسابك أنت</b> — والمساعد يرشدك:</p>
+  <table>
+    <tr><th>المحرك</th><th>الاختيار</th></tr>
+    <tr><td>Claude Opus 5.5</td><td>Anthropic ← تسجيل الدخول ← Claude Opus 5.5</td></tr>
+    <tr><td>ChatGPT Sol 5.6 / Sol 6</td><td>OpenAI (ChatGPT) ← تسجيل الدخول ← النموذج المطلوب</td></tr>
+  </table>
+  <p><b>للتحديث لاحقًا:</b> شغّل نفس الملف مرة أخرى.</p>
 </section>
 
 <section>
@@ -93,7 +95,7 @@
     <tr><td><code>/pii-name الاسم</code></td><td>إضافة اسم ليُحجب دائمًا بكل صيغه الإملائية.</td></tr>
     <tr><td><code>/pii-status</code></td><td>حالة حارس الخصوصية وعدد الرموز والأخطاء المكتشفة.</td></tr>
     <tr><td><code>/model</code></td><td>تبديل المحرك.</td></tr>
-    <tr><td><code>hermes profile update th-legal</code></td><td>تحديث المساعد بعد أن ينشر مسؤول الفريق نسخة جديدة.</td></tr>
+    <tr><td>تشغيل ملف المثبّت مرة أخرى</td><td>تحديث المساعد بعد أن ينشر مسؤول الفريق نسخة جديدة.</td></tr>
   </table>
 </section>
 

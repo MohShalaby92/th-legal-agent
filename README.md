@@ -10,8 +10,8 @@ their own AI engine, and uses it independently. You (the team lead) maintain thi
 | `config.yaml` | Privacy-hardened defaults (manual approvals, no title/background side-calls, no vision tools, visible browser) |
 | `plugins/th-privacy-shield/` | On-device PII masking + Saudi ID/IBAN/phone/address validation + local unmasking |
 | `skills/th-legal/*` | Workflows: session start, document review, missing data, range runner, platform map, Drive, iLovePDF, local extraction |
-| `docs/` | Install guide page (Arabic) + `setup-th-legal.ps1` — publish this folder |
-| `install/setup-th-legal.ps1` | Member installer (source copy; keep `docs/` copy in sync) |
+| `docs/` | Install guide page (Arabic) + `TH-Legal-Setup.cmd` — publish this folder |
+| `install/TH-Legal-Setup.cmd` | One-click member installer/updater (double-click; keep `docs/` copy identical) |
 | `tests/` | Synthetic-data tests + fake-LLM end-to-end privacy test |
 
 ## How the privacy shield works
@@ -44,16 +44,16 @@ profile at `http://127.0.0.1:8765/v1` (`model.provider custom`), send a message 
 check the log contains no raw values.
 
 ## Publishing (live)
-- Repo (private): https://github.com/MohShalaby92/th-legal-agent — add each member as a collaborator
-  (Settings → Collaborators, read access). Their first install opens a GitHub sign-in window.
+- Repo (public — contains no client data or secrets): https://github.com/MohShalaby92/th-legal-agent.
+  Members need no GitHub account. Never commit real documents or credentials here.
 - Install guide: https://th-legal-guide.pages.dev (Cloudflare Pages project `th-legal-guide`, direct upload).
   Redeploy after changing `docs/`:
   `npx wrangler pages deploy docs --project-name th-legal-guide --branch master`
-- Keep `install/setup-th-legal.ps1` and `docs/setup-th-legal.ps1` identical (UTF-8 with BOM, so Arabic
-  shows correctly in Windows PowerShell).
+- Keep `install/TH-Legal-Setup.cmd` and `docs/TH-Legal-Setup.cmd` identical (UTF-8 *without* BOM, CRLF).
+  It is a cmd/PowerShell polyglot: installs Hermes (+desktop) if missing, installs/updates the profile,
+  sets it as the default profile and opens the app. Test mode without dialogs: `set TH_SETUP_TEST=1`.
 
 ## Releasing updates
 Edit skills/SOUL/plugin → run tests → bump `version` in `distribution.yaml` → commit → `git tag vX.Y.Z` →
-push with tags. Members run `hermes profile update th-legal` (their model choice and memory stay).
-To push new `config.yaml` defaults, tell members to run `hermes profile update th-legal --force-config`
-and then re-select their engine with `th-legal model`.
+push with tags. Members just double-click the installer again (their engine choice and memory stay).
+New `config.yaml` defaults are NOT pulled automatically (member settings are preserved).

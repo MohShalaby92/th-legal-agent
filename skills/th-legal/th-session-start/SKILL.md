@@ -18,10 +18,12 @@ Read the model name from your system prompt ("Model: …") and ask:
 > الجلسة تعمل حاليًا على: **<model>**. هل تريد الاستمرار عليه أم التبديل؟
 
 Choices: `الاستمرار` · `Claude Opus 5.5` · `ChatGPT Sol 5.6` · `ChatGPT Sol 6`.
-- If they pick another engine, tell them to type `/model` and pick it (or run `th-legal model` in a
-  terminal on first setup). You cannot switch the model yourself.
-- If the engine is not signed in, tell them to run `th-legal model` once in a terminal (or use the
-  Desktop app → Settings → Model) and sign in with THEIR OWN account. Never ask for a key in chat.
+- If they pick another engine: in the Hermes app click the model name at the bottom of the chat box
+  (or type `/model`) and choose it. You cannot switch the model yourself.
+- If no engine is signed in yet (first use): guide them in simple Arabic, one step at a time —
+  Hermes app → الإعدادات (Settings) → Model/Providers → choose Anthropic (Claude) or OpenAI (ChatGPT)
+  → "Sign in" → log in with THEIR OWN account in the browser window → pick the model. Never ask for a
+  key or password in chat. Avoid terminal commands with these users.
 
 ## 2. Rules (قواعد التدقيق) — mandatory
 Ask: "ما قواعد التدقيق والمراجعة لهذه الجلسة؟" (free text). Offer two shortcuts:
