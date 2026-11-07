@@ -1,5 +1,5 @@
 name: th-legal
-version: 1.0.0
+version: 1.0.1
 description: "مساعد فريق التدقيق — TH law firm document review agent (Arabic), with on-device PII masking"
 hermes_requires: ">=0.22.0"
 author: "TH review team"
