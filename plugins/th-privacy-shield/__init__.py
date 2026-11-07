@@ -72,12 +72,52 @@ def _mask(s: str) -> str:
     return M.mask_text(s, VAULT)
 
 
+def _audit_dir() -> Path:
+    return vault_store.vault_path().parent
+
+
+def _audit_on() -> bool:
+    try:
+        return (_audit_dir() / "AUDIT_ON").exists()
+    except Exception:
+        return False
+
+
+def _audit_write(req: dict) -> None:
+    """Append the (already masked) outbound request to a local audit file. Never leaves the PC."""
+    try:
+        with open(_audit_dir() / "audit.jsonl", "a", encoding="utf-8") as f:
+            f.write(json.dumps({"t": time.strftime("%Y-%m-%d %H:%M:%S"), "request": req}, ensure_ascii=False, default=str) + "\n")
+    except Exception:
+        pass
+
+
+def audit_check() -> dict:
+    """Search the audit log for any real value stored in the vault (i.e. a value that leaked unmasked)."""
+    p = _audit_dir() / "audit.jsonl"
+    if not p.exists():
+        return {"requests": 0, "leaks": []}
+    text = p.read_text(encoding="utf-8")
+    folded = M.digits_view(text)
+    leaks = []
+    for e in list(VAULT.by_tid.values()):
+        raw = e.raw.strip()
+        if len(raw) < 5:
+            continue
+        probe = M.digits_view(raw)
+        if raw in text or probe in folded or (e.cat != "NAME" and len(M.only_digits(raw)) >= 8 and M.only_digits(raw) in folded):
+            leaks.append(e.tid)
+    return {"requests": text.count("\n"), "leaks": leaks}
+
+
 def on_llm_request(**kwargs):
     req = kwargs.get("request")
     if not isinstance(req, dict):
         return None
     try:
         new = _walk(req, _mask)
+        if _audit_on():
+            _audit_write(new)
         return {"request": new, "source": "th-privacy-shield", "reason": "masked PII"}
     except Exception as exc:  # fail closed: strip every text field
         log.error("th-privacy-shield masking failed, blocking content: %s", type(exc).__name__)
@@ -256,6 +296,22 @@ Images, scans and PDF attachments are stripped before reaching you — extract t
 """
 
 
+def cmd_audit(raw_args: str = "", **_: Any) -> str:
+    """/pii-audit on|off|check — keep a local copy of what is sent to the AI and check it for leaks."""
+    a = (raw_args or "").strip().lower()
+    flag = _audit_dir() / "AUDIT_ON"
+    if a == "on":
+        flag.touch()
+        return "تم تفعيل سجل التدقيق المحلي (لا يُرسل لأي جهة)."
+    if a == "off":
+        flag.unlink(missing_ok=True)
+        return "تم إيقاف سجل التدقيق."
+    r = audit_check()
+    if r["leaks"]:
+        return f"⚠️ تسرّب محتمل: {len(r['leaks'])} قيمة ظهرت بدون حجب في {r['requests']} طلب: {', '.join(r['leaks'][:20])}"
+    return f"✅ لا تسرّب: فُحص {r['requests']} طلبًا مرسلًا ولم تظهر أي قيمة حقيقية من جدول الرموز."
+
+
 def register(ctx):
     ctx.register_middleware("llm_request", on_llm_request)
     ctx.register_middleware("tool_request", on_tool_request)
@@ -265,6 +321,7 @@ def register(ctx):
     ctx.register_command("pii-name", cmd_add_name, description="إضافة اسم ليُحجب دائمًا", args_hint="<الاسم>")
     ctx.register_command("pii-clear", cmd_clear, description="مسح جدول الرموز", args_hint="تأكيد")
     ctx.register_command("pii-status", cmd_status, description="حالة حارس الخصوصية")
+    ctx.register_command("pii-audit", cmd_audit, description="سجل تدقيق محلي لما يُرسل وفحص التسرّب", args_hint="on|off|check")
     try:
         ctx.register_system_prompt_section("th-privacy-shield", SYSTEM_SECTION, max_chars=4000)
     except Exception as exc:

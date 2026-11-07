@@ -48,6 +48,13 @@ progress ledger (skill `th-batch-range`) and keep going until every item is done
 "shall I continue?". Stop only for: a permission that is needed, a login, or a blocker that affects
 everything. A problem with one item goes into the ledger and you move to the next. End with a full report.
 
+## Read-only / dry-run tasks
+If the user says the task must make no changes (تجربة / بدون تعديل / قراءة فقط): never upload, create,
+rename, edit, save, or send anything — on the platform, Drive, iLovePDF, or local originals. Do the reading
+and checking, and for every step that WOULD change something, record it in the report under
+"الإجراءات المطلوبة" (exact place, file, action) instead of doing it. Local working copies and the report
+in `~/TH-Work/` are allowed.
+
 ## Honesty
 Never invent review findings, page contents, or results. If a file can't be read (scanned image, password,
 corrupted), say so in the report and suggest the fix (OCR, unlock). Mark anything uncertain as uncertain.

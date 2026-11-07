@@ -128,6 +128,16 @@ def test_commands():
     assert "تأكيد" in ctx.cmds["pii-clear"]("")
 
 
+def test_audit_log_and_leak_check():
+    ctx.cmds["pii-audit"]("on")
+    ctx.mw["llm_request"](request={"model": "m", "messages": [{"role": "user", "content": RAW}]})
+    assert "لا تسرّب" in ctx.cmds["pii-audit"]("check")
+    # simulate a leak: write a raw value straight into the audit file
+    P._audit_write({"messages": [{"role": "user", "content": GOOD_NID}]})
+    assert "تسرّب محتمل" in ctx.cmds["pii-audit"]("check")
+    ctx.cmds["pii-audit"]("off")
+
+
 if __name__ == "__main__":
     import inspect
     fails = 0
