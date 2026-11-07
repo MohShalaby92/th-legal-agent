@@ -1,0 +1,12 @@
+name: th-privacy-shield
+version: 1.0.0
+description: "Masks Saudi personal data (IDs, iqama, IBAN, phones, names, national address) on the user's PC before anything reaches the AI model; validates IDs/IBANs locally; restores real values only for local tools."
+author: "TH legal review team"
+provides_tools:
+  - pii_render
+provides_hooks:
+  - transform_tool_result
+python_dependencies:
+  - "pymupdf>=1.24,<2"
+  - "python-docx>=1.1,<2"
+  - "openpyxl>=3.1,<4"

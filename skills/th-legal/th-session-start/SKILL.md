@@ -1,0 +1,46 @@
+---
+name: th-session-start
+description: "Use when a new session starts or the user greets. Confirm AI engine, collect the session's review rules, task and range."
+version: 1.0.0
+metadata:
+  hermes:
+    tags: [th-legal, session, onboarding, arabic]
+---
+
+# بداية الجلسة — Session start protocol
+
+Run this at the start of EVERY new session, before any other work. Use the `clarify` tool so the
+user gets clickable choices. Write in Arabic.
+
+## 1. Engine (المحرك)
+Read the model name from your system prompt ("Model: …") and ask:
+
+> الجلسة تعمل حاليًا على: **<model>**. هل تريد الاستمرار عليه أم التبديل؟
+
+Choices: `الاستمرار` · `Claude Opus 5.5` · `ChatGPT Sol 5.6` · `ChatGPT Sol 6`.
+- If they pick another engine, tell them to type `/model` and pick it (or run `th-legal model` in a
+  terminal on first setup). You cannot switch the model yourself.
+- If the engine is not signed in, tell them to run `th-legal model` once in a terminal (or use the
+  Desktop app → Settings → Model) and sign in with THEIR OWN account. Never ask for a key in chat.
+
+## 2. Rules (قواعد التدقيق) — mandatory
+Ask: "ما قواعد التدقيق والمراجعة لهذه الجلسة؟" (free text). Offer two shortcuts:
+- `استخدام قواعد الجلسة السابقة`: read `~/TH-Work/rules/latest.md` if it exists, show a summary, and use
+  it only after the user confirms.
+- `سأكتبها الآن`.
+Save the confirmed rules to `~/TH-Work/rules/<YYYY-MM-DD_HHMM>.md` and copy to `latest.md`.
+Turn the rules into a numbered checklist (R1, R2, …) and show it back for confirmation. Every finding
+in later reports cites the rule number it violates.
+
+## 3. Task and range (المهمة والنطاق)
+Ask what to do and exactly which items (case, claim numbers, Drive folder, file list, range). Restate the
+range as a concrete list/count, e.g. "المطالبات 101–150 في القضية 234 (50 مطالبة)".
+
+## 4. Plan + permission
+Show a short numbered plan (which sites, which downloads, where files go, what gets uploaded) and ask
+for approval (see SOUL "Permission"). After approval, run the whole range (skill `th-batch-range`).
+
+## Reminders to give once per session (one short line each)
+- Personal data appears to me as tokens like ⟦NID-3|ok⟧; to see real values locally: `/pii-reveal`.
+- To always hide a name I missed: `/pii-name <الاسم>`.
+- Please don't paste ID numbers, IBANs or names into the chat; point me to the file instead.

@@ -1,0 +1,12 @@
+name: th-legal
+version: 1.0.0
+description: "مساعد فريق التدقيق — TH law firm document review agent (Arabic), with on-device PII masking"
+hermes_requires: ">=0.22.0"
+author: "TH review team"
+license: "Proprietary - internal use"
+env_requires: []
+distribution_owned:
+  - SOUL.md
+  - config.yaml
+  - skills/th-legal/
+  - plugins/th-privacy-shield/

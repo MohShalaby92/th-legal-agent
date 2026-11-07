@@ -1,0 +1,49 @@
+# TH Legal Review Assistant — profile config.
+# The model/provider is deliberately NOT set: every member signs in with their own engine
+# (`th-legal model` → Claude Opus 5.5 / ChatGPT Sol 5.6 / Sol 6).
+
+plugins:
+  enabled:
+    - th-privacy-shield
+
+# Privacy hardening -----------------------------------------------------------
+security:
+  redact_secrets: true
+privacy:
+  redact_pii: true
+approvals:
+  mode: manual          # every flagged shell command asks the user
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  write_approval: true  # memory writes need the user's OK
+auxiliary:
+  title_generation:     # no side-calls that would send conversation text to a model unmasked
+    enabled: false
+    model_upgrade_enabled: false
+  background_review:
+    enabled: false
+curator:
+  enabled: false
+
+# Browser: visible window so the user can log in to the platform / Google themselves
+browser:
+  headed: true
+  record_sessions: false
+
+display:
+  language: ar
+
+# Tools: no image/vision/screen tools (document images must never be sent to the model)
+platform_toolsets:
+  cli:
+    - browser
+    - clarify
+    - file
+    - terminal
+    - todo
+    - skills
+    - memory
+    - session_search
+    - delegation
+    - web

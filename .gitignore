@@ -1,0 +1,58 @@
+# Credentials & secrets — NEVER commit
+auth.json
+.env
+.env.EXAMPLE
+
+# Runtime databases & state
+state.db
+state.db-shm
+state.db-wal
+hermes_state.db
+response_store.db
+response_store.db-shm
+response_store.db-wal
+gateway.pid
+gateway_state.json
+processes.json
+auth.lock
+active_profile
+.update_check
+
+# User data — NEVER commit (includes the encrypted PII vault under local/)
+memories/
+sessions/
+logs/
+plans/
+workspace/
+home/
+local/
+
+# Caches & generated artifacts
+image_cache/
+audio_cache/
+document_cache/
+browser_screenshots/
+cache/
+__pycache__/
+*.pyc
+
+# Infrastructure
+hermes-agent/
+.worktrees/
+profiles/
+bin/
+node_modules/
+checkpoints/
+sandboxes/
+backups/
+errors.log
+.hermes_history
+cron/*
+!cron/jobs.json
+skills/.*
+
+# Never commit real documents or work output
+TH-Work/
+*.pdf
+*.docx
+*.xlsx

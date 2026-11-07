@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>مساعد فريق التدقيق — دليل التثبيت</title>
+<style>
+  :root { --bg:#0f1720; --card:#16212d; --fg:#e8eef4; --muted:#9fb0c0; --accent:#c9a45c; --ok:#4cc38a; --warn:#e5a54b; --border:#26384a; }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:"Segoe UI",Tahoma,"Noto Naskh Arabic",sans-serif; line-height:1.8 }
+  header { padding:48px 20px 28px; text-align:center; border-bottom:1px solid var(--border) }
+  header h1 { margin:0 0 6px; font-size:30px } header p { margin:0; color:var(--muted) }
+  main { max-width:900px; margin:0 auto; padding:24px 20px 60px }
+  section { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px 24px; margin:18px 0 }
+  h2 { margin-top:0; color:var(--accent); font-size:21px }
+  code, pre { font-family:Consolas,monospace; direction:ltr; unicode-bidi:embed }
+  pre { background:#0b1218; border:1px solid var(--border); border-radius:8px; padding:12px 14px; overflow-x:auto; text-align:left }
+  code { background:#0b1218; padding:1px 6px; border-radius:4px }
+  ol li, ul li { margin:6px 0 }
+  .pill { display:inline-block; padding:2px 10px; border-radius:999px; border:1px solid var(--border); color:var(--muted); font-size:13px; margin-inline-start:6px }
+  .ok { color:var(--ok) } .warn { color:var(--warn) }
+  table { width:100%; border-collapse:collapse } td, th { border-bottom:1px solid var(--border); padding:8px; text-align:right; vertical-align:top }
+  th { color:var(--muted); font-weight:600 }
+  footer { text-align:center; color:var(--muted); font-size:13px; padding:20px }
+</style>
+</head>
+<body>
+<header>
+  <h1>مساعد فريق التدقيق</h1>
+  <p>وكيل ذكي يعمل على جهازك لمساعدتك في تدقيق المستندات وتحديد النواقص وتجهيز ملفات PDF — مع حماية البيانات الشخصية قبل إرسال أي شيء.</p>
+</header>
+<main>
+
+<section>
+  <h2>ماذا يفعل؟</h2>
+  <ul>
+    <li>يدقق المستندات ويراجعها وفق <b>قواعد التدقيق التي تكتبها أنت في بداية كل جلسة</b>.</li>
+    <li>يحدد البيانات والمستندات الناقصة في المطالبات والقضايا ويصيغ «طلب النواقص».</li>
+    <li>يعمل على منصة التميمي والحمودي و Google Drive عبر المتصفح، وعلى iLovePDF للدمج والتحويل وOCR.</li>
+    <li>يكمل النطاق المطلوب كاملًا (مثلًا المطالبات 1–50) دون توقف، ويسلّمك تقريرًا شاملًا.</li>
+    <li>يطلب إذنك قبل أي إجراء على جهازك أو حساباتك.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>الخصوصية <span class="pill">أهم قاعدة</span></h2>
+  <p>قبل أن يغادر أي نص جهازك، يستبدل «حارس الخصوصية» البيانات الشخصية برموز، مثل:
+  <code>⟦NID-3|ok⟧</code> و <code>⟦IBAN-2|BAD:checksum⟧</code> و <code>⟦NAME-4|parts=4⟧</code>.</p>
+  <ul>
+    <li>يتحقق محليًا من صحة رقم الهوية/الإقامة (خانة التحقق)، والآيبان (bank + checksum)، والجوال، والعنوان الوطني، ويكشف الاختلافات بين المستندات (نفس الاسم بإملاء مختلف، رقم مختلف بخانة واحدة) — دون أن يرى المحرك القيم الحقيقية.</li>
+    <li>الصور والمسح الضوئي لا تُرسل للمحرك إطلاقًا؛ يُقرأ النص محليًا.</li>
+    <li>القيم الحقيقية محفوظة على جهازك فقط في ملف مشفّر (Windows DPAPI).</li>
+  </ul>
+  <p class="warn">تنبيه: كشف الأسماء يعتمد على قواعد ومعجم أسماء وقد يفوته اسم نادر غير مسبوق بوصف (مثل «المدعي:»). إن لاحظت اسمًا لم يُحجب، اكتب <code>/pii-name الاسم</code> ليُحجب دائمًا، وأبلغ مسؤول الفريق. لا تكتب أرقام الهوية أو الآيبان أو الأسماء في المحادثة؛ أشر إلى الملف بدلًا من ذلك.</p>
+  <p class="warn">iLovePDF خدمة خارجية: الملفات التي تُرفع إليها تغادر الجهاز (بحسب سياسة الفريق). يحذف المساعد الملفات من iLovePDF فور التنزيل.</p>
+</section>
+
+<section>
+  <h2>التثبيت (مرة واحدة) — Windows</h2>
+  <ol>
+    <li>ثبّت <b>Hermes Desktop</b> من <a href="https://hermes-agent.nousresearch.com" style="color:var(--accent)">hermes-agent.nousresearch.com</a> (ملف <code>.appinstaller</code>).</li>
+    <li>اطلب من مسؤول الفريق إضافة حسابك على GitHub إلى مستودع الفريق الخاص.</li>
+    <li>نزّل ملف <a href="setup-th-legal.ps1" style="color:var(--accent)"><code>setup-th-legal.ps1</code></a>، ثم افتح PowerShell في مجلد التنزيل وشغّل:
+      <pre>powershell -ExecutionPolicy Bypass -File .\setup-th-legal.ps1</pre>
+      سيفتح Git نافذة لتسجيل الدخول إلى GitHub في المرة الأولى.</li>
+    <li>عند سؤالك عن المحرك، اختر محركك <b>وسجّل الدخول بحسابك أنت</b>:
+      <table>
+        <tr><th>المحرك</th><th>الاختيار في القائمة</th></tr>
+        <tr><td>Claude Opus 5.5</td><td>المزوّد Anthropic ← النموذج Claude Opus 5.5</td></tr>
+        <tr><td>ChatGPT Sol 5.6 / Sol 6</td><td>المزوّد OpenAI (تسجيل دخول ChatGPT) ← النموذج المطلوب</td></tr>
+      </table>
+    </li>
+    <li>افتح Hermes Desktop واختر الملف الشخصي <code>th-legal</code>.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>كل جلسة</h2>
+  <ol>
+    <li>سيسألك المساعد عن <b>المحرك</b> (للتأكيد أو التبديل عبر <code>/model</code>).</li>
+    <li>ثم عن <b>قواعد التدقيق</b> لهذه الجلسة — اكتبها أو اختر «قواعد الجلسة السابقة».</li>
+    <li>ثم عن <b>المهمة والنطاق</b> (رقم القضية، المطالبات، مجلد Drive…).</li>
+    <li>يعرض خطة مختصرة ← توافق ← ينفذ النطاق كاملًا ← يسلّمك التقرير (<code>report.final.md</code>) في <code>TH-Work</code>.</li>
+  </ol>
+  <p>في أول استخدام للمنصة أو Drive ستظهر نافذة متصفح: <b>سجّل الدخول بنفسك</b>؛ المساعد لا يكتب كلمات المرور أبدًا.</p>
+</section>
+
+<section>
+  <h2>أوامر مفيدة</h2>
+  <table>
+    <tr><td><code>/pii-reveal</code></td><td>يعرض جدول الرموز وقيمها الحقيقية في نافذة محلية (يُحذف بعد 10 دقائق).</td></tr>
+    <tr><td><code>/pii-name الاسم</code></td><td>إضافة اسم ليُحجب دائمًا بكل صيغه الإملائية.</td></tr>
+    <tr><td><code>/pii-status</code></td><td>حالة حارس الخصوصية وعدد الرموز والأخطاء المكتشفة.</td></tr>
+    <tr><td><code>/model</code></td><td>تبديل المحرك.</td></tr>
+    <tr><td><code>hermes profile update th-legal</code></td><td>تحديث المساعد بعد أن ينشر مسؤول الفريق نسخة جديدة.</td></tr>
+  </table>
+</section>
+
+</main>
+<footer>للاستخدام الداخلي فقط — فريق التدقيق</footer>
+</body>
+</html>
