@@ -1,7 +1,7 @@
 ﻿# TH Legal Review Agent — installer for team members (Windows PowerShell)
 # Usage (PowerShell):  powershell -ExecutionPolicy Bypass -File .\setup-th-legal.ps1
 param(
-  [string]$RepoUrl = "https://github.com/CHANGE-ME/th-legal-agent.git",
+  [string]$RepoUrl = "https://github.com/MohShalaby92/th-legal-agent.git",
   [string]$ProfileName = "th-legal"
 )
 $ErrorActionPreference = "Stop"
