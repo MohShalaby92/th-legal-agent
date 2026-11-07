@@ -43,14 +43,14 @@ End-to-end (no real AI, no network): start `python tests/fake_llm.py <log.jsonl>
 profile at `http://127.0.0.1:8765/v1` (`model.provider custom`), send a message with synthetic PII and
 check the log contains no raw values.
 
-## Publishing (team lead)
-1. Create a **private** GitHub repo, e.g. `th-legal-agent`, and push this folder.
-2. Put the repo URL in `install/setup-th-legal.ps1` and `docs/setup-th-legal.ps1` (`$RepoUrl`).
-3. Add each member's GitHub account as a collaborator (read access).
-4. Install guide hosting — **Cloudflare Pages**: Create project → Connect to Git → pick the repo →
-   build command: *(none)*, output directory: `docs`. Works with private repos on the free plan.
-   (GitHub Pages also works, but serving Pages from a private repo needs a paid GitHub plan.)
-   Optional: protect the page with Cloudflare Access (email allow-list).
+## Publishing (live)
+- Repo (private): https://github.com/MohShalaby92/th-legal-agent — add each member as a collaborator
+  (Settings → Collaborators, read access). Their first install opens a GitHub sign-in window.
+- Install guide: https://th-legal-guide.pages.dev (Cloudflare Pages project `th-legal-guide`, direct upload).
+  Redeploy after changing `docs/`:
+  `npx wrangler pages deploy docs --project-name th-legal-guide --branch master`
+- Keep `install/setup-th-legal.ps1` and `docs/setup-th-legal.ps1` identical (UTF-8 with BOM, so Arabic
+  shows correctly in Windows PowerShell).
 
 ## Releasing updates
 Edit skills/SOUL/plugin → run tests → bump `version` in `distribution.yaml` → commit → `git tag vX.Y.Z` →
