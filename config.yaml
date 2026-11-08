@@ -28,7 +28,7 @@ curator:
 
 # Browser: attach to the member's own work browser ("TH Chrome (العمل)" shortcut, port 9222).
 # Google refuses sign-in in agent-launched browsers; a normal Chrome/Edge window with its own
-# work profile keeps the platform + Google logins. Started by `th.py browser start`.
+# work profile keeps the platform + Google logins. Started by `th browser start`.
 browser:
   headed: true
   record_sessions: false
@@ -39,7 +39,7 @@ browser:
 
 # Pre-approved: the bundled read-only TH helpers (one fixed entry point, no shell operators allowed)
 command_allowlist:
-  - python ~/AppData/Local/TH-Legal/th.py *
+  - th *
 
 display:
   language: ar

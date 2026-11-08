@@ -16,7 +16,7 @@ editing, uploading, status changes, or saving on the platform need explicit appr
 ## Login
 The user logs in themselves (email+password or "تسجيل الدخول باستخدام جوجل") in the work browser
 «TH Chrome (العمل)» that the agent is attached to. Never type credentials. Check with
-`python ~/AppData/Local/TH-Legal/th.py browser check` (`platform: signed-in`). The platform session expires
+`th browser check` (`platform: signed-in`). The platform session expires
 after some time; if any helper says `platform sign-in needed` or you land on `/login`, stop, ask the user
 to log in again in that window, then continue from the ledger.
 

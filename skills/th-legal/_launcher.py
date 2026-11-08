@@ -1,7 +1,7 @@
 """TH launcher (installed to %LOCALAPPDATA%\\TH-Legal\\th.py by the setup). Finds the installed
 th-legal skills and runs their th.py — so the command line is the same on every PC:
 
-    python ~/AppData/Local/TH-Legal/th.py <command> [args]
+    th <command> [args]
 """
 import glob
 import os

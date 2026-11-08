@@ -11,7 +11,7 @@ metadata:
 
 Drive is used through the member's own work browser («TH Chrome (العمل)», attached automatically).
 The user signs in to Google there themselves. Never type credentials; never change sharing settings.
-Check sign-in first: `python ~/AppData/Local/TH-Legal/th.py browser check` → `google_drive: signed-in`.
+Check sign-in first: `th browser check` → `google_drive: signed-in`.
 A shared folder link that opens while signed out is NOT a sign-in (listing will fail).
 
 ## Load the helpers (first line of every Drive `browser_exec` call)
@@ -44,7 +44,7 @@ n = th.drive_download("<FILE_ID>", r"~/TH-Work/<task>/in/claim-1630_debtor-reply
 - It waits until the file is complete and returns the size — compare with `size` from the listing.
 - Google Docs/Sheets (no `ext`): ask the user, or export via
   `https://docs.google.com/document/d/<ID>/export?format=docx` (`spreadsheets/d/<ID>/export?format=xlsx`).
-- Then read it locally: `python ~/AppData/Local/TH-Legal/th.py extract "<file>"` (masked; OCR for scans).
+- Then read it locally: `th extract "<file>"` (masked; OCR for scans).
 
 ## Search
 Search by non-personal words only (claim number, document type): list the right folder and filter by

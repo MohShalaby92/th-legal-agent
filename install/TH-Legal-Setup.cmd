@@ -100,32 +100,54 @@ try {
   New-Item -ItemType Directory -Force -Path (Split-Path $rootPlugin) | Out-Null
   if (Test-Path $rootPlugin) { Remove-Item -Recurse -Force $rootPlugin }
   Copy-Item -Recurse -Force (Join-Path $profileDir "plugins\th-privacy-shield") $rootPlugin
-  & $hermes plugins enable th-privacy-shield | Out-Null
-  & $hermes -p $ProfileName plugins enable th-privacy-shield | Out-Null
-  & $hermes -p $ProfileName plugins list --plain --no-bundled
-  if ($LASTEXITCODE -ne 0) { throw "Privacy shield check failed (exit $LASTEXITCODE)." }
-
-  # 4) Same browser + approval settings in the main setup (the profile already carries them)
-  Step "Applying browser and approval settings..."
-  Set-Cfg $hermes $null "browser.cdp_url" "http://127.0.0.1:$CdpPort"
-  Set-Cfg $hermes $null "browser.use_real_profile" "false"
-  Set-Cfg $hermes $null "browser.inactivity_timeout" "1800"
-  Set-Cfg $hermes $null "browser.command_timeout" "60"
-  $allow = "python ~/AppData/Local/TH-Legal/th.py *"
-  $rootCfg = Join-Path $HermesHome "config.yaml"
-  $cfgText = if (Test-Path $rootCfg) { [IO.File]::ReadAllText($rootCfg) } else { "" }
-  if ($cfgText -notmatch [regex]::Escape($allow)) {
-    if ($cfgText -match "(?m)^command_allowlist:\s*$") {
-      $cfgText = [regex]::Replace($cfgText, "(?m)^command_allowlist:\s*$", "command_allowlist:`n  - $allow", 1)
-      [IO.File]::WriteAllText($rootCfg, $cfgText, (New-Object System.Text.UTF8Encoding($false)))
-    } elseif ($cfgText -notmatch "(?m)^command_allowlist:") {
-      Set-Cfg $hermes $null "command_allowlist" "[""$allow""]"
-    } else { Write-Host "note: command_allowlist has a custom format; add '$allow' by hand if needed" }
+  foreach ($p in @($null, $ProfileName)) {
+    $pa = if ($p) { @("-p", $p) } else { @() }
+    & $hermes @pa plugins enable th-privacy-shield
+    $lst = & $hermes @pa plugins list --plain --no-bundled
+    if (-not (($lst | Out-String) -match "(?m)^enabled\s+.*th-privacy-shield")) {
+      # 'plugins enable' re-resolves every Python package and fails when a download server is down.
+      # The shield's own packages are already installed with the profile, so switch it on in config directly.
+      Write-Host "plugins enable failed - enabling via config" -ForegroundColor Yellow
+      $en = @((& $hermes @pa config get plugins.enabled) | ForEach-Object { if ($_ -match '^\s*-\s*(\S+)\s*$') { $Matches[1] } }) | Where-Object { $_ -and $_ -ne "th-privacy-shield" }
+      $dis = @((& $hermes @pa config get plugins.disabled) | ForEach-Object { if ($_ -match '^\s*-\s*(\S+)\s*$') { $Matches[1] } }) | Where-Object { $_ -and $_ -ne "th-privacy-shield" }
+      & $hermes @pa config set plugins.enabled ("[" + ((@($en) + "th-privacy-shield") -join ", ") + "]") | Out-Null
+      & $hermes @pa config set plugins.disabled ("[" + (@($dis) -join ", ") + "]") | Out-Null
+      $lst = & $hermes @pa plugins list --plain --no-bundled
+    }
+    if (-not (($lst | Out-String) -match "(?m)^enabled\s+.*th-privacy-shield")) {
+      throw "Privacy shield is not enabled in '$(if ($p) { $p } else { 'main setup' })'."
+    }
   }
 
-  # 5) TH command launcher (same command line on every PC)
+  # 4) Same browser + approval settings in the main setup AND the profile (profile updates keep old values)
+  Step "Applying browser and approval settings..."
+  foreach ($p in @($null, $ProfileName)) {
+    Set-Cfg $hermes $p "browser.cdp_url" "http://127.0.0.1:$CdpPort"
+    Set-Cfg $hermes $p "browser.use_real_profile" "false"
+    Set-Cfg $hermes $p "browser.inactivity_timeout" "1800"
+    Set-Cfg $hermes $p "browser.command_timeout" "60"
+  }
+  $allow = "th *"
+  foreach ($cfgPath in @((Join-Path $HermesHome "config.yaml"), (Join-Path $profileDir "config.yaml"))) {
+    $cfgText = if (Test-Path $cfgPath) { [IO.File]::ReadAllText($cfgPath) } else { "" }
+    $cfgText = $cfgText -replace "(?m)^  - python ~/AppData/Local/TH-Legal/th\.py \*\x0D?\n", ""   # v1.1.0 pre-release entry
+    if ($cfgText -match "(?m)^  - th \*\s*$") { [IO.File]::WriteAllText($cfgPath, $cfgText, (New-Object System.Text.UTF8Encoding($false))); continue }
+    if ($cfgText -match "(?m)^command_allowlist:[ \t\x0D]*$") {
+      $cfgText = [regex]::Replace($cfgText, "(?m)^command_allowlist:[ \t\x0D]*$", "command_allowlist:`n  - $allow", 1)
+    } elseif ($cfgText -notmatch "(?m)^command_allowlist:") {
+      $cfgText = $cfgText.TrimEnd() + "`ncommand_allowlist:`n  - $allow`n"
+    } else { Write-Host "note: command_allowlist has a custom format in $cfgPath; add '$allow' by hand"; continue }
+    [IO.File]::WriteAllText($cfgPath, $cfgText, (New-Object System.Text.UTF8Encoding($false)))
+  }
+
+  # 5) The `th` command (same on every PC): launcher + tiny wrappers on the PATH Hermes already uses
   New-Item -ItemType Directory -Force -Path $THDir | Out-Null
   Copy-Item -Force (Join-Path $skillsDir "_launcher.py") (Join-Path $THDir "th.py")
+  $binDir = Join-Path $HermesHome "bin"
+  New-Item -ItemType Directory -Force -Path $binDir | Out-Null
+  $utf8 = New-Object System.Text.UTF8Encoding($false)
+  [IO.File]::WriteAllText((Join-Path $binDir "th"), "#!/bin/sh`nexec python ""`$LOCALAPPDATA/TH-Legal/th.py"" ""`$@""`n", $utf8)
+  [IO.File]::WriteAllText((Join-Path $binDir "th.cmd"), "@python ""%LOCALAPPDATA%\TH-Legal\th.py"" %*`r`n", $utf8)
 
   # 6) Work browser: own Chrome/Edge window with a separate work profile + desktop shortcut
   Step "Preparing the work browser..."
@@ -138,13 +160,20 @@ try {
     @{ exe = $browser; profile_dir = $workProfile; port = $CdpPort } | ConvertTo-Json |
       Set-Content -Encoding UTF8 (Join-Path $THDir "work-browser.json")
     $lnkPath = Join-Path ([Environment]::GetFolderPath("Desktop")) "TH Chrome (العمل).lnk"
-    $ws = New-Object -ComObject WScript.Shell
-    $sc = $ws.CreateShortcut($lnkPath)
-    $sc.TargetPath = $browser
-    $sc.Arguments = "--remote-debugging-port=$CdpPort --user-data-dir=""$workProfile"" --no-first-run --no-default-browser-check https://manage.th-lawfirm.sa/dashboard https://drive.google.com/drive/my-drive"
-    $sc.Description = "TH work browser - sign in once here; the review agent works in this window"
-    $sc.IconLocation = "$browser,0"
-    $sc.Save()
+    $tmpLnk = Join-Path ([Environment]::GetFolderPath("Desktop")) "TH-Chrome-work.lnk"   # COM can't save Arabic names; rename after
+    try {
+      $ws = New-Object -ComObject WScript.Shell
+      $sc = $ws.CreateShortcut($tmpLnk)
+      $sc.TargetPath = $browser
+      $sc.Arguments = "--remote-debugging-port=$CdpPort --user-data-dir=""$workProfile"" --no-first-run --no-default-browser-check https://manage.th-lawfirm.sa/dashboard https://drive.google.com/drive/my-drive"
+      $sc.Description = "TH work browser - sign in once here; the review agent works in this window"
+      $sc.IconLocation = "$browser,0"
+      $sc.Save()
+      Move-Item -Force -LiteralPath $tmpLnk -Destination $lnkPath
+    } catch {
+      Write-Host "warning: could not create the desktop shortcut ($($_.Exception.Message))" -ForegroundColor Yellow
+      if (Test-Path $tmpLnk) { $lnkPath = $tmpLnk }
+    }
   } else {
     Write-Host "Chrome/Edge not found - the agent will ask the user to install Chrome." -ForegroundColor Yellow
   }

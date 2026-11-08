@@ -13,16 +13,16 @@ Run this at the start of EVERY new session, before any other work. Use the `clar
 user gets clickable choices. Write in Arabic.
 
 ## 0. Privacy self-test and connection check (automatic, read-only — no permission needed)
-1. `python ~/AppData/Local/TH-Legal/th.py selftest`
+1. `th selftest`
    - PASS: the ID and the mobile number appear as ⟦NID-n…⟧ / ⟦PHONE-n…⟧ tokens.
    - FAIL: any 10-digit ID or 05… number is visible → reply only:
      «⚠️ حماية البيانات الشخصية غير مفعّلة في هذه الجلسة. أغلق تطبيق Hermes وافتحه من جديد، وإن استمرت
      المشكلة شغّل ملف الإعداد TH-Legal-Setup مرة أخرى.» Do no other work in this session.
-2. `python ~/AppData/Local/TH-Legal/th.py browser check` → JSON with `platform` and `google_drive`.
+2. `th browser check` → JSON with `platform` and `google_drive`.
    - It starts the work browser («TH Chrome (العمل)») if it is closed — never close it yourself.
    - For each `SIGN-IN NEEDED`, ask the user to sign in in that window themselves (one short line each):
      المنصة: «سجّل الدخول إلى منصة التميمي والحمودي في نافذة "TH Chrome (العمل)"»؛
-     جوجل: «سجّل الدخول بحساب جوجل الخاص بالعمل في النافذة نفسها». Run `th.py browser open-logins` to open
+     جوجل: «سجّل الدخول بحساب جوجل الخاص بالعمل في النافذة نفسها». Run `th browser open-logins` to open
      both login pages for them. Then re-run `browser check` until both say `signed-in`.
    - Only ask for the sign-ins the task actually needs (e.g. no Google needed for a local-files task).
    - `browser: not-started` → Chrome/Edge is missing or blocked; ask the user to open the

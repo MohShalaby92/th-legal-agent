@@ -1,6 +1,6 @@
 """TH command — one entry point for every local helper (pre-approved, read-only by design).
 
-    python ~/AppData/Local/TH-Legal/th.py <command> [args]
+    th <command> [args]            (installed as %LOCALAPPDATA%\\hermes\\bin\\th and th.cmd)
 
   selftest                         privacy self-test (run at session start)
   browser check|start|status|open-logins
@@ -11,6 +11,7 @@
                                    progress ledger for range work
   paths                            where the TH skills live (for browser_exec imports)
 """
+import re
 import runpy
 import sys
 from pathlib import Path
@@ -22,6 +23,12 @@ CMDS = {
     "extract": HERE / "th-local-docs" / "scripts" / "extract_text.py",
     "ledger": HERE / "th-batch-range" / "scripts" / "ledger.py",
 }
+
+
+def _native(arg: str) -> str:
+    """bash on Windows turns ~/x into /c/Users/..; native Python needs C:/Users/.."""
+    m = re.match(r"^/([a-zA-Z])/(.*)$", arg)
+    return f"{m.group(1).upper()}:/{m.group(2)}" if m else arg
 
 
 def main():
@@ -40,7 +47,7 @@ def main():
     if script is None:
         print(f"unknown command: {cmd}\n{__doc__}")
         sys.exit(2)
-    sys.argv = [str(script), *sys.argv[2:]]
+    sys.argv = [str(script), *[_native(a) for a in sys.argv[2:]]]
     sys.path.insert(0, str(script.parent))
     runpy.run_path(str(script), run_name="__main__")
 

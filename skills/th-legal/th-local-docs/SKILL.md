@@ -13,7 +13,7 @@ All reading happens on this PC. Never send a document (or a screenshot of it) to
 
 ## Extract
 ```
-python ~/AppData/Local/TH-Legal/th.py extract "<file>" [--max-chars 60000] [--ocr auto|force|off] [--dates]
+th extract "<file>" [--max-chars 60000] [--ocr auto|force|off] [--dates]
 ```
 Pre-approved; the output is masked by the script itself before printing (independent of the plugin).
 Output has `=== page N ===` markers. Never read documents with ad-hoc `python -c` / `cat` / pymupdf
