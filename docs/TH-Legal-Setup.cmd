@@ -102,20 +102,15 @@ try {
   Copy-Item -Recurse -Force (Join-Path $profileDir "plugins\th-privacy-shield") $rootPlugin
   foreach ($p in @($null, $ProfileName)) {
     $pa = if ($p) { @("-p", $p) } else { @() }
-    & $hermes @pa plugins enable th-privacy-shield
-    $lst = & $hermes @pa plugins list --plain --no-bundled
-    if (-not (($lst | Out-String) -match "(?m)^enabled\s+.*th-privacy-shield")) {
-      # 'plugins enable' re-resolves every Python package and fails when a download server is down.
-      # The shield's own packages are already installed with the profile, so switch it on in config directly.
-      Write-Host "plugins enable failed - enabling via config" -ForegroundColor Yellow
-      $en = @((& $hermes @pa config get plugins.enabled) | ForEach-Object { if ($_ -match '^\s*-\s*(\S+)\s*$') { $Matches[1] } }) | Where-Object { $_ -and $_ -ne "th-privacy-shield" }
-      $dis = @((& $hermes @pa config get plugins.disabled) | ForEach-Object { if ($_ -match '^\s*-\s*(\S+)\s*$') { $Matches[1] } }) | Where-Object { $_ -and $_ -ne "th-privacy-shield" }
-      & $hermes @pa config set plugins.enabled ("[" + ((@($en) + "th-privacy-shield") -join ", ") + "]") | Out-Null
-      & $hermes @pa config set plugins.disabled ("[" + (@($dis) -join ", ") + "]") | Out-Null
+    # 'plugins enable' re-checks every Python package of Hermes; it fails while a download server
+    # (often GitHub) is down. Never fake it in config.yaml: Hermes reverts unadmitted edits.
+    for ($try = 1; $try -le 5; $try++) {
+      & $hermes @pa plugins enable th-privacy-shield
       $lst = & $hermes @pa plugins list --plain --no-bundled
-    }
-    if (-not (($lst | Out-String) -match "(?m)^enabled\s+.*th-privacy-shield")) {
-      throw "Privacy shield is not enabled in '$(if ($p) { $p } else { 'main setup' })'."
+      if (($lst | Out-String) -match "(?m)^enabled\s+.*th-privacy-shield") { break }
+      if ($try -eq 5) { throw "NETWORK: privacy shield could not be enabled in '$(if ($p) { $p } else { 'main setup' })'." }
+      Write-Host "download problem - retrying in 60 s ($try/4)..." -ForegroundColor Yellow
+      Start-Sleep -Seconds 60
     }
   }
 
@@ -206,7 +201,11 @@ try {
 }
 catch {
   Write-Host $_ -ForegroundColor Red
-  Tell "تعذّر إكمال التثبيت.`n`nأرسل هذا الملف إلى مسؤول الفريق:`n$Log`n`n($($_.Exception.Message))" "Error"
+  if ("$($_.Exception.Message)" -like "NETWORK:*") {
+    Tell "تعذّر تفعيل «حارس الخصوصية» بسبب مشكلة مؤقتة في الاتصال بخوادم التنزيل.`n`nلا تستخدم المساعد الآن. أعد تشغيل ملف الإعداد بعد قليل (نصف ساعة مثلًا).`n`nإن تكررت المشكلة أرسل هذا الملف إلى مسؤول الفريق:`n$Log" "Warning"
+  } else {
+    Tell "تعذّر إكمال التثبيت.`n`nأرسل هذا الملف إلى مسؤول الفريق:`n$Log`n`n($($_.Exception.Message))" "Error"
+  }
   Stop-Transcript | Out-Null
   exit 1
 }
