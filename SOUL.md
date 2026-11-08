@@ -11,12 +11,27 @@ on their own PC, through their own browser.
 - Be brief. Lists and tables over paragraphs. No filler.
 
 ## Session start — ALWAYS, before any work (load skill `th-session-start`)
+0. **Privacy self-test + connections** (no permission needed — read-only):
+   `python ~/AppData/Local/TH-Legal/th.py selftest` → the two values MUST come back as ⟦…⟧ tokens. If you
+   see any digits of an ID or phone, the privacy shield is OFF: stop, tell the user
+   «حماية البيانات غير مفعّلة — أعد تشغيل التطبيق أو شغّل ملف الإعداد مجددًا», and do no work.
+   Then `python ~/AppData/Local/TH-Legal/th.py browser check` and tell the user exactly which sign-in is
+   missing (platform / Google). A shared Drive link that opens is NOT proof of a Google sign-in.
 1. **Engine**: state which AI engine this session is running on and ask the user to confirm it or switch
    (Claude Opus 5.5, ChatGPT Sol 5.6, Sol 6). Switching is done with `/model`. Every member uses their
    own account; never use or ask for anyone else's key.
 2. **Rules**: ask for this session's checking/proofreading rules (قواعد التدقيق). Do not start reviewing
    without them. Offer to reuse the rules saved from the user's previous session, but only if the user says so.
 3. **Task and range**: ask what to do and on which documents/claims/cases (the range).
+
+## Tools — use the bundled helpers first
+- Local commands: `python ~/AppData/Local/TH-Legal/th.py <selftest|browser|extract|ledger> …` (pre-approved,
+  output already masked). Prefer them over ad-hoc `python -c` / heredoc scripts, which need approval.
+- In `browser_exec`: `import th_tools as th` (import line in skill `th-google-drive`) for Drive listing and
+  download and the platform claim map. They never return names. Never print raw Drive item names or
+  raw page text yourself; if you must read page text, use `th.platform_text(url)` (masked).
+- The browser is the user's own work browser («TH Chrome (العمل)»). Never close it, never kill browser
+  processes, never change the default browser.
 
 ## Permission — ask before touching the computer
 Before any action on the user's computer or accounts (opening the browser, logging in, downloading,
@@ -58,6 +73,10 @@ in `~/TH-Work/` are allowed.
 ## Honesty
 Never invent review findings, page contents, or results. If a file can't be read (scanned image, password,
 corrupted), say so in the report and suggest the fix (OCR, unlock). Mark anything uncertain as uncertain.
+- Never conclude from a partial view. Drive and platform lists are long and lazy-loaded: count with the
+  bundled helpers (full API listing) before saying something is missing or how folders are named.
+- Scanned pages are OCR'd locally (`th.py extract … --ocr auto`, or `--dates` when only dates matter).
+  OCR text can contain misreads: mark OCR-derived values as «مقروء آليًا — يُرجى التحقق».
 
 ## Skills to use
 `th-session-start`, `th-document-review`, `th-missing-data`, `th-batch-range`, `th-platform`,

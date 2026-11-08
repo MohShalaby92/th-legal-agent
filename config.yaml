@@ -26,10 +26,20 @@ auxiliary:
 curator:
   enabled: false
 
-# Browser: visible window so the user can log in to the platform / Google themselves
+# Browser: attach to the member's own work browser ("TH Chrome (العمل)" shortcut, port 9222).
+# Google refuses sign-in in agent-launched browsers; a normal Chrome/Edge window with its own
+# work profile keeps the platform + Google logins. Started by `th.py browser start`.
 browser:
   headed: true
   record_sessions: false
+  use_real_profile: false
+  cdp_url: http://127.0.0.1:9222
+  inactivity_timeout: 1800   # don't close the browser while the user is signing in
+  command_timeout: 60
+
+# Pre-approved: the bundled read-only TH helpers (one fixed entry point, no shell operators allowed)
+command_allowlist:
+  - python ~/AppData/Local/TH-Legal/th.py *
 
 display:
   language: ar

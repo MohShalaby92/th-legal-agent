@@ -1,0 +1,2 @@
+ara.traineddata: Tesseract "tessdata_fast" Arabic model, Apache License 2.0,
+https://github.com/tesseract-ocr/tessdata_fast

@@ -12,6 +12,9 @@ $RepoUrl     = "https://github.com/MohShalaby92/th-legal-agent.git"
 $ProfileName = "th-legal"
 $Test        = $env:TH_SETUP_TEST -eq "1"   # developer test mode: no dialogs, no default switch, no launch
 $Log         = Join-Path $env:LOCALAPPDATA "TH-Legal-Setup.log"
+$HermesHome  = Join-Path $env:LOCALAPPDATA "hermes"
+$THDir       = Join-Path $env:LOCALAPPDATA "TH-Legal"
+$CdpPort     = 9222
 Start-Transcript -Path $Log -Force | Out-Null
 Add-Type -AssemblyName System.Windows.Forms
 
@@ -34,7 +37,7 @@ function Find-Hermes {
   Refresh-Path
   $c = Get-Command hermes -ErrorAction SilentlyContinue
   if ($c) { return $c.Source }
-  foreach ($p in @("$env:LOCALAPPDATA\hermes\bin\hermes.cmd", "$env:LOCALAPPDATA\hermes\bin\hermes.exe")) { if (Test-Path $p) { return $p } }
+  foreach ($p in @("$HermesHome\bin\hermes.cmd", "$HermesHome\bin\hermes.exe")) { if (Test-Path $p) { return $p } }
   return $null
 }
 function Find-DesktopShortcut {
@@ -45,9 +48,26 @@ function Find-DesktopShortcut {
   }
   return $null
 }
+function Find-Browser {
+  foreach ($p in @("$env:ProgramFiles\Google\Chrome\Application\chrome.exe", "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
+                   "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe", "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
+                   "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe")) { if ($p -and (Test-Path $p)) { return $p } }
+  return $null
+}
+function Find-Tesseract {
+  foreach ($p in @("$env:ProgramFiles\Tesseract-OCR\tesseract.exe", "$env:LOCALAPPDATA\Programs\Tesseract-OCR\tesseract.exe")) { if (Test-Path $p) { return $p } }
+  return $null
+}
+function Set-Cfg($hermesExe, $prof, $key, $value) {
+  if ($prof) { & $hermesExe -p $prof config set $key $value | Out-Null } else { & $hermesExe config set $key $value | Out-Null }
+  if ($LASTEXITCODE -ne 0) { Write-Host "warning: could not set $key" -ForegroundColor Yellow }
+}
 
 try {
-  if (-not (Ask "سيتم تثبيت (أو تحديث) مساعد فريق التدقيق على هذا الجهاز.`n`nقد يستغرق التثبيت الأول من 10 إلى 20 دقيقة. اترك النافذة السوداء مفتوحة حتى تظهر رسالة الانتهاء.`n`nهل تريد المتابعة؟")) { exit 0 }
+  if (-not (Ask "سيتم تثبيت (أو تحديث) مساعد فريق التدقيق على هذا الجهاز.`n`nقد يستغرق التثبيت الأول من 10 إلى 20 دقيقة. اترك النافذة السوداء مفتوحة حتى تظهر رسالة الانتهاء.`n`nإذا كان تطبيق Hermes مفتوحًا فسيُغلق ثم يُفتح من جديد.`n`nهل تريد المتابعة؟")) { exit 0 }
+
+  # 0) Close the app so the new privacy settings load cleanly
+  if (-not $Test) { Get-Process -Name "Hermes" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue }
 
   # 1) Hermes (the app that runs the agent)
   $hermes = Find-Hermes
@@ -62,7 +82,7 @@ try {
   }
 
   # 2) The agent profile from the team repository (public, no sign-in needed)
-  $profileDir = Join-Path $env:LOCALAPPDATA "hermes\profiles\$ProfileName"
+  $profileDir = Join-Path $HermesHome "profiles\$ProfileName"
   if (Test-Path (Join-Path $profileDir "distribution.yaml")) {
     Step "Updating the review agent..."
     & $hermes profile update $ProfileName -y
@@ -71,20 +91,89 @@ try {
     & $hermes profile install $RepoUrl --name $ProfileName --alias -y
   }
   if ($LASTEXITCODE -ne 0) { throw "Agent profile install/update failed (exit $LASTEXITCODE)." }
+  $skillsDir = Join-Path $profileDir "skills\th-legal"
 
-  # 3) Privacy shield on + its document readers prepared
-  Step "Preparing the privacy shield..."
+  # 3) Privacy shield in the profile AND in the main Hermes setup.
+  #    The desktop app runs some agent work under the main setup, so the shield must be there too.
+  Step "Enabling the privacy shield everywhere..."
+  $rootPlugin = Join-Path $HermesHome "plugins\th-privacy-shield"
+  New-Item -ItemType Directory -Force -Path (Split-Path $rootPlugin) | Out-Null
+  if (Test-Path $rootPlugin) { Remove-Item -Recurse -Force $rootPlugin }
+  Copy-Item -Recurse -Force (Join-Path $profileDir "plugins\th-privacy-shield") $rootPlugin
+  & $hermes plugins enable th-privacy-shield | Out-Null
+  & $hermes -p $ProfileName plugins enable th-privacy-shield | Out-Null
   & $hermes -p $ProfileName plugins list --plain --no-bundled
   if ($LASTEXITCODE -ne 0) { throw "Privacy shield check failed (exit $LASTEXITCODE)." }
 
-  # 4) Open the app on this agent
+  # 4) Same browser + approval settings in the main setup (the profile already carries them)
+  Step "Applying browser and approval settings..."
+  Set-Cfg $hermes $null "browser.cdp_url" "http://127.0.0.1:$CdpPort"
+  Set-Cfg $hermes $null "browser.use_real_profile" "false"
+  Set-Cfg $hermes $null "browser.inactivity_timeout" "1800"
+  Set-Cfg $hermes $null "browser.command_timeout" "60"
+  $allow = "python ~/AppData/Local/TH-Legal/th.py *"
+  $rootCfg = Join-Path $HermesHome "config.yaml"
+  $cfgText = if (Test-Path $rootCfg) { [IO.File]::ReadAllText($rootCfg) } else { "" }
+  if ($cfgText -notmatch [regex]::Escape($allow)) {
+    if ($cfgText -match "(?m)^command_allowlist:\s*$") {
+      $cfgText = [regex]::Replace($cfgText, "(?m)^command_allowlist:\s*$", "command_allowlist:`n  - $allow", 1)
+      [IO.File]::WriteAllText($rootCfg, $cfgText, (New-Object System.Text.UTF8Encoding($false)))
+    } elseif ($cfgText -notmatch "(?m)^command_allowlist:") {
+      Set-Cfg $hermes $null "command_allowlist" "[""$allow""]"
+    } else { Write-Host "note: command_allowlist has a custom format; add '$allow' by hand if needed" }
+  }
+
+  # 5) TH command launcher (same command line on every PC)
+  New-Item -ItemType Directory -Force -Path $THDir | Out-Null
+  Copy-Item -Force (Join-Path $skillsDir "_launcher.py") (Join-Path $THDir "th.py")
+
+  # 6) Work browser: own Chrome/Edge window with a separate work profile + desktop shortcut
+  Step "Preparing the work browser..."
+  $browser = Find-Browser
+  $firstBrowserSetup = $false
+  if ($browser) {
+    $oldProfile = Join-Path $env:USERPROFILE "TH-Chrome"
+    $workProfile = if (Test-Path $oldProfile) { $oldProfile } else { Join-Path $THDir "browser" }
+    if (-not (Test-Path $workProfile)) { $firstBrowserSetup = $true }
+    @{ exe = $browser; profile_dir = $workProfile; port = $CdpPort } | ConvertTo-Json |
+      Set-Content -Encoding UTF8 (Join-Path $THDir "work-browser.json")
+    $lnkPath = Join-Path ([Environment]::GetFolderPath("Desktop")) "TH Chrome (العمل).lnk"
+    $ws = New-Object -ComObject WScript.Shell
+    $sc = $ws.CreateShortcut($lnkPath)
+    $sc.TargetPath = $browser
+    $sc.Arguments = "--remote-debugging-port=$CdpPort --user-data-dir=""$workProfile"" --no-first-run --no-default-browser-check https://manage.th-lawfirm.sa/dashboard https://drive.google.com/drive/my-drive"
+    $sc.Description = "TH work browser - sign in once here; the review agent works in this window"
+    $sc.IconLocation = "$browser,0"
+    $sc.Save()
+  } else {
+    Write-Host "Chrome/Edge not found - the agent will ask the user to install Chrome." -ForegroundColor Yellow
+  }
+
+  # 7) Local Arabic OCR for scanned documents (nothing is uploaded)
+  Step "Installing local OCR (Arabic)..."
+  if (-not (Find-Tesseract)) {
+    & winget install --id tesseract-ocr.tesseract -e --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+  }
+  $tess = Find-Tesseract
+  $td = Join-Path $THDir "tessdata"
+  New-Item -ItemType Directory -Force -Path $td | Out-Null
+  Copy-Item -Force (Join-Path $skillsDir "th-local-docs\tessdata\ara.traineddata") $td -ErrorAction SilentlyContinue
+  if ($tess) {
+    Copy-Item -Force (Join-Path (Split-Path $tess) "tessdata\eng.traineddata") $td -ErrorAction SilentlyContinue
+  } else {
+    Write-Host "OCR could not be installed now; scanned pages will be flagged instead." -ForegroundColor Yellow
+  }
+
+  # 8) Open the app on this agent (+ the work browser the first time, to sign in)
   if (-not $Test) {
     & $hermes profile use $ProfileName
+    if ($browser -and $firstBrowserSetup) { Start-Process $lnkPath }
     $lnk = Find-DesktopShortcut
     if ($lnk) { Start-Process $lnk } else { Start-Process $hermes -ArgumentList "desktop" }
   }
 
-  Tell "تم التثبيت بنجاح ✅`n`nسيفتح تطبيق Hermes الآن على «مساعد فريق التدقيق».`n`nفي أول مرة فقط: اختر محرك الذكاء الاصطناعي الخاص بك وسجّل الدخول بحسابك أنت (Claude Opus 5.5 أو ChatGPT Sol 5.6 / Sol 6). سيرشدك المساعد خطوة بخطوة.`n`nللتحديث لاحقًا: شغّل هذا الملف مرة أخرى."
+  $signin = if ($firstBrowserSetup) { "`n`nفُتحت نافذة «TH Chrome (العمل)»: سجّل الدخول فيها مرة واحدة إلى منصة التميمي والحمودي وإلى حساب جوجل الخاص بالعمل. يعمل المساعد داخل هذه النافذة، وتبقى تسجيلات الدخول محفوظة. لفتحها لاحقًا استخدم الاختصار على سطح المكتب." } else { "" }
+  Tell "تم التثبيت بنجاح ✅$signin`n`nفي أول مرة فقط: اختر محرك الذكاء الاصطناعي الخاص بك في تطبيق Hermes وسجّل الدخول بحسابك أنت (Claude Opus 5.5 أو ChatGPT Sol 5.6 / Sol 6). سيرشدك المساعد خطوة بخطوة.`n`nللتحديث لاحقًا: شغّل هذا الملف مرة أخرى."
 }
 catch {
   Write-Host $_ -ForegroundColor Red

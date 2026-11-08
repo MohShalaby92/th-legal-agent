@@ -480,24 +480,47 @@ def _key(cat: str, raw: str) -> str:
 
 
 class Vault:
-    """Bidirectional raw<->token map. Persistence is injected (see vault_store.py)."""
+    """Bidirectional raw<->token map. Persistence is injected (see vault_store.py).
 
-    def __init__(self, load: Callable[[], dict] | None = None, save: Callable[[dict], None] | None = None):
+    With ``store`` (an object with load/save/lock/mtime), the vault is shared safely between
+    processes: before assigning a new token it re-reads the file under a lock, so two processes
+    never hand out the same token number for different values.
+    """
+
+    def __init__(self, load: Callable[[], dict] | None = None, save: Callable[[dict], None] | None = None,
+                 store=None):
         self._lock = threading.RLock()
-        self._save = save
+        self._store = store
+        self._save = save or (store.save if store else None)
+        self._load = load or (store.load if store else None)
+        self._mtime = None
         self.by_key: dict[str, Entry] = {}
         self.by_tid: dict[str, Entry] = {}
         self.counters: dict[str, int] = {}
-        if load:
+        self._reload()
+
+    def _reload(self) -> None:
+        if not self._load:
+            return
+        try:
+            data = self._load() or {}
+        except Exception:
+            return
+        for e in data.get("entries", []):
             try:
-                data = load() or {}
-                for e in data.get("entries", []):
-                    ent = Entry(**e)
-                    self.by_key[ent.key] = ent
-                    self.by_tid[ent.tid] = ent
-                self.counters = dict(data.get("counters", {}))
-            except Exception:
-                pass
+                ent = Entry(**e)
+            except TypeError:
+                continue
+            self.by_key[ent.key] = ent
+            self.by_tid[ent.tid] = ent
+        for k, v in (data.get("counters") or {}).items():
+            self.counters[k] = max(int(v), self.counters.get(k, 0))
+        if self._store:
+            self._mtime = self._store.mtime()
+
+    def _refresh_if_changed(self) -> None:
+        if self._store and self._store.mtime() != self._mtime:
+            self._reload()
 
     def dump(self) -> dict:
         return {
@@ -507,6 +530,7 @@ class Vault:
 
     def known_names(self) -> list[str]:
         with self._lock:
+            self._refresh_if_changed()
             return [e.raw for e in self.by_tid.values() if e.cat == "NAME"]
 
     def _similar(self, cat: str, raw: str) -> list[str]:
@@ -546,24 +570,42 @@ class Vault:
         key = _key(cat, raw)
         with self._lock:
             ent = self.by_key.get(key)
-            if ent is None:
-                status, hints = validate(cat, raw, ctx)
-                hints = hints + self._similar(cat, raw)
-                n = self.counters.get(cat, 0) + 1
-                self.counters[cat] = n
-                ent = Entry(cat=cat, n=n, raw=raw, key=key, status=status, hints=hints)
-                self.by_key[key] = ent
-                self.by_tid[ent.tid] = ent
-                if self._save:
+            if ent is not None:
+                return ent.token()
+            if self._store:
+                with self._store.lock():
+                    self._refresh_if_changed()
+                    ent = self.by_key.get(key) or self._new_entry(cat, raw, key, ctx)
                     try:
-                        self._save(self.dump())
+                        self._store.save(self.dump())
+                        self._mtime = self._store.mtime()
                     except Exception:
                         pass
+                return ent.token()
+            ent = self._new_entry(cat, raw, key, ctx)
+            if self._save:
+                try:
+                    self._save(self.dump())
+                except Exception:
+                    pass
             return ent.token()
+
+    def _new_entry(self, cat: str, raw: str, key: str, ctx: str) -> Entry:
+        status, hints = validate(cat, raw, ctx)
+        hints = hints + self._similar(cat, raw)
+        n = self.counters.get(cat, 0) + 1
+        self.counters[cat] = n
+        ent = Entry(cat=cat, n=n, raw=raw, key=key, status=status, hints=hints)
+        self.by_key[key] = ent
+        self.by_tid[ent.tid] = ent
+        return ent
 
     def raw_for(self, tid: str) -> Optional[str]:
         with self._lock:
             e = self.by_tid.get(tid)
+            if e is None and self._store:
+                self._refresh_if_changed()
+                e = self.by_tid.get(tid)
             return e.raw if e else None
 
     def clear(self) -> None:
@@ -572,7 +614,11 @@ class Vault:
             self.by_tid.clear()
             self.counters.clear()
             _VARIANT_CACHE.clear()
-            if self._save:
+            if self._store:
+                with self._store.lock():
+                    self._store.save(self.dump())
+                    self._mtime = self._store.mtime()
+            elif self._save:
                 self._save(self.dump())
 
 

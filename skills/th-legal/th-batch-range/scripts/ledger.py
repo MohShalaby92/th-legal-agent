@@ -31,7 +31,13 @@ def save(task_dir, data):
 
 
 def main(argv):
+    if len(argv) < 3 or argv[1] not in ("init", "next", "mark", "status"):
+        print(__doc__)
+        return
     cmd, task_dir, rest = argv[1], argv[2], argv[3:]
+    if cmd == "mark" and len(rest) < 2:
+        print("usage: ledger.py mark <task_dir> <item> <ok|issues|failed|skipped> [note]")
+        return
     data = load(task_dir)
     if cmd == "init":
         if rest and rest[0] == "--from-file":

@@ -7,6 +7,7 @@ import tempfile
 
 HERE = os.path.dirname(__file__)
 os.environ["HERMES_HOME"] = tempfile.mkdtemp(prefix="th-shield-test-")
+os.environ["TH_PRIVACY_DIR"] = tempfile.mkdtemp(prefix="th-privacy-test-")
 sys.path.insert(0, HERE)
 from test_masker import GOOD_NID, GOOD_IBAN  # noqa: E402
 
@@ -136,6 +137,26 @@ def test_audit_log_and_leak_check():
     P._audit_write({"messages": [{"role": "user", "content": GOOD_NID}]})
     assert "تسرّب محتمل" in ctx.cmds["pii-audit"]("check")
     ctx.cmds["pii-audit"]("off")
+
+
+def test_shared_vault_across_processes():
+    """Two separate processes masking different values must never reuse a token number."""
+    import subprocess
+    code = (
+        "import sys; sys.path.insert(0, r'%s'); import masker as M, vault_store as S\n"
+        "v = M.Vault(store=S.Store)\n"
+        "for i in range(25):\n"
+        "    print(M.mask_text('هوية %%s' %% (sys.argv[1] + str(i).zfill(2)), v))\n"
+    ) % PKG
+    procs = [subprocess.Popen([sys.executable, "-c", code, prefix], stdout=subprocess.PIPE,
+                              env=dict(os.environ, PYTHONIOENCODING="utf-8")) for prefix in ("10000000", "20000000")]
+    for p in procs:
+        p.wait(timeout=60)
+    v = P.M.Vault(store=P.vault_store.Store)
+    raws = [e.raw for e in v.by_tid.values() if e.cat in ("NID", "IQAMA")]
+    tids = [e.tid for e in v.by_tid.values()]
+    assert len(tids) == len(set(tids))
+    assert sum(r.startswith("10000000") for r in raws) == 25 and sum(r.startswith("20000000") for r in raws) == 25
 
 
 if __name__ == "__main__":

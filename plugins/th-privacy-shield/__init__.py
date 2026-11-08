@@ -29,7 +29,21 @@ from . import vault_store
 
 log = logging.getLogger(__name__)
 
-VAULT = M.Vault(load=vault_store.load, save=vault_store.save)
+
+def _shared_vault() -> "M.Vault":
+    """ONE vault per process, even when Hermes loads this plugin twice (e.g. once for the default
+    profile and once for th-legal in a multiplexed Desktop backend)."""
+    import sys
+    import types
+    holder = sys.modules.get("_th_privacy_shared")
+    if holder is None:
+        holder = types.ModuleType("_th_privacy_shared")
+        holder.vault = M.Vault(store=vault_store.Store)
+        sys.modules["_th_privacy_shared"] = holder
+    return holder.vault
+
+
+VAULT = _shared_vault()
 
 # Tools whose arguments may carry real values (they act on this PC / the user's own browser).
 UNMASK_TOOLS = {
@@ -73,7 +87,7 @@ def _mask(s: str) -> str:
 
 
 def _audit_dir() -> Path:
-    return vault_store.vault_path().parent
+    return vault_store.privacy_dir()
 
 
 def _audit_on() -> bool:

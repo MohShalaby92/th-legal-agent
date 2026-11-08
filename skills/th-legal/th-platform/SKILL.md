@@ -1,7 +1,7 @@
 ---
 name: th-platform
 description: "Use when working on manage.th-lawfirm.sa (cases, claims, attachments, checklists). Map of pages, safe page reading, file download/upload."
-version: 1.0.0
+version: 1.1.0
 metadata:
   hermes:
     tags: [th-legal, platform, livewire, claims, bankruptcy, arabic]
@@ -14,10 +14,24 @@ an element) before reading. Actions are `wire:click` handlers, not links. Defaul
 editing, uploading, status changes, or saving on the platform need explicit approval just before the click.
 
 ## Login
-The user logs in themselves (email+password or "تسجيل الدخول باستخدام جوجل") in the agent's browser
-window (`browser.headed: true`). Never type credentials. If you land on `/login`, stop and ask the user to
-log in, then continue. If the agent browser doesn't work for them, the fallback is Desktop app →
-Settings → Browser → "use my real browser profile" (Chrome/Brave/Edge logins), which the user turns on.
+The user logs in themselves (email+password or "تسجيل الدخول باستخدام جوجل") in the work browser
+«TH Chrome (العمل)» that the agent is attached to. Never type credentials. Check with
+`python ~/AppData/Local/TH-Legal/th.py browser check` (`platform: signed-in`). The platform session expires
+after some time; if any helper says `platform sign-in needed` or you land on `/login`, stop, ask the user
+to log in again in that window, then continue from the ledger.
+
+## Bundled helpers (preferred — fast, no navigation timeouts, masked)
+```python
+import sys, glob, os; sys.path[:0] = glob.glob(os.path.expandvars(r"%LOCALAPPDATA%\hermes\skills\th-legal")) + glob.glob(os.path.expandvars(r"%LOCALAPPDATA%\hermes\profiles\*\skills\th-legal")); import th_tools as th
+m = th.platform_claim_map(234, 1625, 1675)   # {map:{claimNo: claimId}, missing, pages, failed_pages}
+print(th.platform_text(f"/claim/{m['map'][1630]}/studies"))   # masked page text
+```
+- **Claim numbers ≠ claim IDs.** The claims search box does not search by claim number. Always map
+  numbers → IDs with `platform_claim_map` (it fetches every list page in the background) and save the
+  map to the task folder.
+- Slow pages: don't use `goto_url` + `wait_for_load` in loops (5 s command limit → stuck daemon).
+  The helpers fetch pages in-page with long timeouts. If you must navigate, use
+  `js("location.href='<url>'")`, then poll `document.readyState`.
 
 ## Map
 | Area | URL |
@@ -34,8 +48,9 @@ Settings → Browser → "use my real browser profile" (Chrome/Brave/Edge logins
 `searchTerm` (by title/description), "عرض N ملف إضافي" expands a group. Edit modal fields: `case.title`,
 `case.description`, `case.client_requirements` (متطلبات العميل), `case.number`, `case.odoo_reference`.
 
-**Claims tab** (`/case/{id}/claims`): search `claimSearch`; can be thousands of claims — paginate/scroll and
-collect claim links `/claim/{id}/studies`. Claim number shown as `#NNNN` (رقم المطالبة).
+**Claims tab** (`/case/{id}/claims?page=N`): search `claimSearch` (does not match claim numbers); can be
+thousands of claims across many pages. Claim number shown as `#NNNN` near each `/claim/{id}/studies` link —
+use `th.platform_claim_map`.
 
 **Claim page** (`/claim/{id}/studies`): "معلومات عن المطالبة" = الدائن، رقم المطالبة، القضية، مبلغ المطالبة،
 تاريخ الإنشاء، تم إنشاؤه بواسطة. "مرفقات المطالبة" = attachment groups, typically:
@@ -50,12 +65,12 @@ Typical claim workflow seen on the platform: creditor documents received → rev
 ("المستندات مدمجة", e.g. `<claimNo> مدمج.pdf`) → notification proof (اثبات التبليغ) → debtor reply (رد المدين).
 
 ## Reading a page (privacy-safe)
-Always read with the bundled extractor — it outputs `label: value` lines (so the privacy shield can spot
-names after labels), attachment groups and file cards with `attachment_id`s:
+Prefer `th.platform_text(url)` (masked). For the structured view (label: value lines, attachment groups,
+file cards with `attachment_id`s) on the currently open page:
 ```python
-# inside browser_exec
-goto_url("https://manage.th-lawfirm.sa/claim/<id>/studies"); wait_for_load(); import time; time.sleep(3)
-print(js(open(r"<skill_dir>/scripts/page_extract.js", encoding="utf-8").read()))
+# inside browser_exec, after loading th_tools (above)
+from pathlib import Path
+print(th.mask(js(Path(th.__file__).with_name("th-platform").joinpath("scripts", "page_extract.js").read_text(encoding="utf-8"))))
 ```
 Never dump `document.body.innerHTML`. Never take screenshots of client data.
 
